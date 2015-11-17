@@ -1,0 +1,76 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'com.squareup.wire'
+
+setupPublishingDetails()
+def setupPublishingDetails() {
+	def env = System.getenv('CI_ENV')
+	if (env == 'RELEASE') {
+		project.ext.publishingRepo = 'libs-release-local'
+		return
+	}
+	project.ext.publishingRepo = 'libs-snapshot-local'
+	version = "${version}-SNAPSHOT"
+}
+
+buildscript {
+	ext.kotlin_version = '1.0.0-beta-1038'
+	repositories {
+		jcenter()
+		mavenLocal()
+	}
+	dependencies {
+		classpath 'com.android.tools.build:gradle:1.2.3'
+		classpath "com.squareup.wire:wire-gradle-plugin:1.0.0-SNAPSHOT"
+		classpath "org.jetbrains.kotlin:kotlin-android-extensions:$kotlin_version"
+		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+	}
+
+}
+
+repositories {
+	maven {
+		credentials {
+			username artifactory_user
+			password artifactory_password
+		}
+		url "${artifactory_contextUrl}/${project.ext.publishingRepo}"
+	}
+	mavenLocal()
+	jcenter()
+}
+
+android {
+	compileSdkVersion 23
+	buildToolsVersion "23.0.1"
+
+
+	defaultConfig {
+		applicationId "com.hubble.networktest.app"
+		minSdkVersion 15
+		targetSdkVersion 23
+		versionCode 1
+		versionName "1.0"
+	}
+	buildTypes {
+		release {
+			minifyEnabled false
+			proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+		}
+	}
+	sourceSets {
+		main {
+			java.srcDirs += 'src/main/kotlin'
+			java.srcDirs += 'build/generated/source/proto/debug'
+		}
+	}
+	ext.generatedFilesDir = "${projectDir}/proto-gen-src"
+}
+
+dependencies {
+	compile fileTree(dir: 'libs', include: ['*.jar'])
+	compile 'com.android.support:appcompat-v7:23.0.1'
+	compile 'com.hubble.actors:kotlin-actors:0.1.8-SNAPSHOT'
+	compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+	compile 'com.squareup.wire:wire-runtime:1.8.0'
+}
